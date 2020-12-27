@@ -1,7 +1,8 @@
-/* Sysex to RAW
- * 
- * Accept a Pro 3 wavetable sysex file from standard input
- * Send a RAW waveform (16-byte, big-endian, 1 channel) to standard output
+/* Move Sysex to New Wavetable Number
+ *
+ * Accept Pro 3 wavetable sysex at standard input, and a wavetable number
+ *   (33-64) as a command line argument
+ * Send a sysex file with the new wavetable number to standard output
  * 
  */
 #include <stdio.h>
@@ -11,24 +12,38 @@
 
 int main(int argc, char *argv[])
 {
-    /* Ignore sysex header bytes */
-    int i;
-    for (i = 0; i < 17; i++) getchar();
+    /* The wavetable number is expected as a command-line argument */
+    if (argc < 2) {
+        printf("\nusage: cat wt-old.syx | %s wavetable-number > wt-new.syx", argv[0]);
+        return -1;
+    }
 
-    PackedData sysex;
-    unsigned int data[SEQUENTIAL_DATA_MAX];
-    unsigned long int size = 0;
+    int wavetable_number = atoi(argv[1]);
+    if (wavetable_number > 64 || wavetable_number < 33) {
+        printf("\nwavetable number out of range (33-64)\n\n");
+        return -1;
+    }
+
+    /* Read everything up to the wavetable number */
+    int i;
+    for (int i = 0; i < 7; i++)
+    {
+        int c = getchar();
+        if (c == EOF) return -1;
+        putchar((char) c);
+    }
+    wavetable_number--; /* Because wavetable numbers are zero-indexed to the Pro3 */
+    putchar((char) wavetable_number);
+
+    /* Now pass the rest of the file through */
+    getchar(); /* Burn off the previous wavetable number */
     for (;;)
     {
         int c = getchar();
-        if (c == 0xf7 || c == EOF || size == SEQUENTIAL_DATA_MAX) break;
-       	data[size++] = c;
+        if (c == EOF) break;
+        putchar((char) c);
     }
-    
-    Seq_set(&sysex, size, data);
-    
-    UnpackedData params = Seq_unpack(sysex);
-    Seq_dump(params);
+
     return 0;
 }
 

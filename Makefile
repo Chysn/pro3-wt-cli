@@ -1,6 +1,8 @@
+DEST = /usr/local/bin
+
 all:
-	gcc -o /usr/local/bin/wt-move wt-move.c
-	gcc -o /usr/local/bin/morph-controller morph-controller.c
-	gcc -o /usr/local/bin/syx2raw syx2raw.c
-	gcc -o /usr/local/bin/wav2pro3 wav2pro3.c
+	gcc -o $(DEST)/wt-move wt-move.c
+	gcc -o $(DEST)/morph-controller morph-controller.c
+	gcc -o $(DEST)/syx2raw syx2raw.c
+	gcc -o $(DEST)/wav2pro3 wav2pro3.c
 

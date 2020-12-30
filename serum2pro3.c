@@ -16,13 +16,13 @@
 #include <stdint.h>
 #include <errno.h>
 #include "sequential_lib/pro3_wavetable.h"
-#define SERUM_SIZE 2048
+#define WAV_MAX 1050000
  
 int main(int argc, char *argv[]) 
 {
     /* The wavetable number is expected as a command-line argument */
-    if (argc < 4) {
-        fprintf(stderr, "\nusage: %s name wavetable-number serum-wav-path > serum.syx\n\n", argv[0]);
+    if (argc < 5) {
+        fprintf(stderr, "\nusage: %s name wavetable-number frame-size serum-wav-path > serum.syx\n\n", argv[0]);
         return -1;
     }
 
@@ -33,40 +33,48 @@ int main(int argc, char *argv[])
     }
     wavetable_number--; /* Because wavetable numbers are zero-indexed to the Pro3 */
 
+    int frame_size = atoi(argv[3]);
+    if (frame_size < 128) {
+        fprintf(stderr, "\nframe size out of range (>= 128)\n\n");
+        return -1;
+    }
+
     FILE *fp;
     int byte;
     int argnum;
 
     Wavetable table = new_Wavetable();
     int ref_num = 0;
-    if ((fp = fopen(argv[3], "r")) == NULL) {
+    if ((fp = fopen(argv[4], "r")) == NULL) {
         fprintf(stderr, "\nwav file not found\n\n");
         return -1;
     } else {
-        int size = 0;
-        signed int wav[PCM_PROC_MAX];
+        unsigned long int size = 0;
+        int* wav = (int*)malloc(WAV_MAX * sizeof(int));
         while ((byte = getc(fp)) != EOF)
         {
             wav[size++] = byte;
-            if (size == PCM_PROC_MAX) {
+            if (size == WAV_MAX) {
                 fprintf(stderr, "wav too big\n\n");
                 return -1;
             }
         }
         fclose(fp);
-        PCMData pcm = wav_to_pcm(size, wav);
-        int orig_size = pcm.size / SERUM_SIZE;
+        WAVMeta meta = get_wav_meta(size, wav);
+        
+        int orig_size = meta.samples / frame_size;
+
         float ref_dist = (float) PRO3_WAVES / (float) orig_size;
         float ref_num = 0;
-        int wave_num;
         PCMData ref;
+        int wave_num;
         for (wave_num = 0; wave_num < orig_size; wave_num++)
         {
-            ref = pcm_trim(&pcm, SERUM_SIZE * wave_num, SERUM_SIZE);
+            ref = wav_extract(meta, wav, wave_num * frame_size, frame_size);
             pcm_change_size(&ref, PRO3_SAMPLE_SIZE);
             if (!(wave_num > 0 && (int) ref_num == 0)) { /* Protect the first waveform */
                 set_reference(&table, &ref, (int) ref_num);
-                fprintf(stderr, "Wave: %i  Ref: %i\n", wave_num, (int) ref_num);
+                /* fprintf(stderr, "Wave: %i  Ref: %i\n", wave_num, (int) ref_num); */
             }
             ref_num += ref_dist;
         }
@@ -75,6 +83,7 @@ int main(int argc, char *argv[])
              * to override that behavior */
             set_reference(&table, &ref, 15);
         }
+        free(wav);
     }
 
     wavetable_fill(&table);

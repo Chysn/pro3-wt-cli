@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 
     /* Read everything up to the wavetable number */
     int i;
-    for (int i = 0; i < 7; i++)
+    for (i = 0; i < 7; i++)
     {
         int c = getchar();
         if (c == EOF) return -1;

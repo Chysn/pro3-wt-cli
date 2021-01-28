@@ -5,7 +5,7 @@
  * ./serum2pro3 wavetable-number name serum.wav > sysex-file.syx
  * 
  * wavetable-number is a number between 33 and 64
- * if wavetable-number is 0, wav2pro3 outputs raw PCM instead of sysex
+ * if wavetable-number is 0, serum2pro3 outputs raw PCM instead of sysex
  * name is a string of up to eight characters
  * 
  */
